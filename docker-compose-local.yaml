@@ -1,0 +1,104 @@
+services:
+  db:
+    container_name: "db"
+    image: postgres:16
+    restart: always
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - custom
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    container_name: "redis"
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - custom
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    container_name: "rabbitmq"
+    image: rabbitmq:3-management
+    restart: always
+    environment:
+      - RABBITMQ_DEFAULT_USER=rabbitmq
+      - RABBITMQ_DEFAULT_PASS=rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - custom
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: "app"
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - DOCKER_ENV=true
+      - PYTHONPATH=/app/src
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - custom
+    volumes:
+      - ./src:/app/src
+    command: ["python", "-m", "uvicorn", "dostavka.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  celery:
+    build: .
+    container_name: "celery"
+    restart: always
+    environment:
+      - DOCKER_ENV=true
+      - PYTHONPATH=/app/src
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - custom
+    volumes:
+      - ./src:/app/src
+    command: ["celery", "-A", "dostavka.celery.celery_app", "worker", "--loglevel=info", "-Q", "packages"]
+
+networks:
+  custom:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
