@@ -1,8 +1,7 @@
 import pytest
+from main import app
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
-
-from dostavka.main import app
 
 
 @pytest.fixture
