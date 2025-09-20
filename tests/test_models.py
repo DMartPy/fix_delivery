@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from dostavka.api.models import PackageCreate, TaskResponse, PackageGetTypes
+from src.models.db import PackageCreate, TaskResponse, PackageGetTypes
 
 
 class TestPackageCreate:

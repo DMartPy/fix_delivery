@@ -22,6 +22,7 @@ class TestPackageEndpoints:
     def test_create_package_validation(self, client, sample_package_data):
         """Тест валидации создания посылки"""
         # Тест с корректными данными
+        # Проверяем, что функция не падает с ошибкой
         response = client.post("/packages/", json=sample_package_data)
         # Должен вернуть 403 (нет сессии) или 500 (ошибка сервера)
         assert response.status_code in [status.HTTP_403_FORBIDDEN, status.HTTP_500_INTERNAL_SERVER_ERROR]
